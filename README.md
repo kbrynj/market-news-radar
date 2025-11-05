@@ -64,6 +64,8 @@ When enabled, you'll need to enter the token in the UI (Settings panel → Admin
 - **Duplicate Detection** - URL-based deduplication to avoid storing the same article twice
 - **🔐 Optional Token Auth** - Protect admin endpoints with simple token-based authentication
 - **🔍 Ticker Autocomplete** - Smart search with 5,000+ tickers (US, Nordic, crypto) from local dataset
+- **⏱️ Rate Limiting** - Staggered requests and configurable intervals to respect RSS feed servers
+- **🌐 RSS Etiquette** - Proper User-Agent headers and request delays to avoid blocking
 - **Responsive Design** - Works on desktop, tablet, and mobile
 - **🌙 Light/Dark Theme Toggle** - Switch between light and dark modes with persistent preference
 
@@ -353,7 +355,34 @@ netstat -an | grep 8000
 - Check for proxy/firewall blocking WS connections
 - Verify in browser console (F12)
 
-## 📄 License
+## �️ Development & Scripts
+
+The `scripts/` directory contains utility scripts for maintenance, testing, and database management:
+
+- **Ticker Management**: `generate_tickers_dataset.py` - Update ticker dataset
+- **Database Tools**: `check_feeds.py`, `check_feed_articles.py`, `quick_check.py`
+- **Feed Testing**: `test_yahoo_rss.py`, `add_feeds.py`, `fix_feeds.py`
+- **Validation**: `validate_setup.py`, `test_dynamic_tickers.py`
+
+See [scripts/README.md](scripts/README.md) for detailed documentation.
+
+### Rate Limiting
+
+The scraper implements RSS feed etiquette:
+- **Staggered Requests**: 1-second delays between feeds
+- **Configurable Intervals**: Default 10 minutes (adjustable in Settings)
+- **Proper Headers**: Identifies as legitimate RSS reader
+
+See [RATE_LIMITING.md](RATE_LIMITING.md) for details.
+
+### Documentation
+
+- [TICKER_AUTOCOMPLETE.md](TICKER_AUTOCOMPLETE.md) - How ticker search works
+- [UPDATE_SCHEDULE.md](UPDATE_SCHEDULE.md) - When to update ticker dataset
+- [RATE_LIMITING.md](RATE_LIMITING.md) - RSS feed etiquette and rate limiting
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
+
+## �📄 License
 
 This project is open source. Use responsibly and respect RSS feed providers' terms of service.
 

@@ -143,11 +143,21 @@ def parse_published_date(date_str: Optional[str]) -> Tuple[int, str]:
         return int(now.timestamp()), now.strftime("%Y-%m-%d %H:%M:%S")
 
 
-async def fetch_feed(session: aiohttp.ClientSession, url: str) -> Optional[Dict]:
-    """Fetch and parse RSS feed with timeout."""
+async def fetch_feed(session: aiohttp.ClientSession, url: str, delay: float = 0) -> Optional[Dict]:
+    """Fetch and parse RSS feed with timeout and rate limiting."""
+    # Add delay between requests to respect feed servers
+    if delay > 0:
+        await asyncio.sleep(delay)
+    
     try:
+        # Add user-agent to appear as a legitimate RSS reader
+        headers = {
+            'User-Agent': 'Market News Radar RSS Reader/1.0 (RSS Feed Aggregator; +https://github.com/kbrynj/market-news-radar)',
+            'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+        }
+        
         timeout = aiohttp.ClientTimeout(total=30)
-        async with session.get(url, timeout=timeout) as response:
+        async with session.get(url, timeout=timeout, headers=headers) as response:
             if response.status == 200:
                 content = await response.text()
                 feed = feedparser.parse(content)
@@ -368,15 +378,18 @@ async def run_cycle() -> int:
     
     print(f"Configuration: {len(active_feeds)} feeds, {len(tickers)} tickers, "
           f"{len(keywords)} keywords, {len(strong_words)} strong words")
+    print(f"Company mappings: {len(company_to_ticker_dynamic)} from DB + "
+          f"{len(COMPANY_TO_TICKER)} static = {len(active_company_mapping)} total")
     
-    # Fetch all feeds concurrently
+    # Fetch all feeds with rate limiting (stagger requests by 1 second each)
     all_articles = []
     
     async with aiohttp.ClientSession() as session:
-        # Create fetch tasks for all active feeds
+        # Create fetch tasks with staggered delays to avoid overwhelming servers
+        # First feed: no delay, subsequent feeds: 1s, 2s, 3s, etc.
         fetch_tasks = [
-            fetch_feed(session, feed['url'])
-            for feed in active_feeds
+            fetch_feed(session, feed['url'], delay=i * 1.0)
+            for i, feed in enumerate(active_feeds)
         ]
         
         # Wait for all fetches to complete

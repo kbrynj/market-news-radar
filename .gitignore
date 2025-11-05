@@ -76,8 +76,16 @@ test_*.pyc
 *.tmp
 *.temp
 *.bak
-update_tickers.py
+
+# Development/test scripts (use scripts/ for utilities)
+test_*.py
+check_*.py
+fix_*.py
+quick_*.py
 
 # OS
 Thumbs.db
 Desktop.ini
+
+# Project-specific
+market_news.db

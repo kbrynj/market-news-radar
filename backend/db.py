@@ -78,7 +78,7 @@ async def init_db():
     await db.execute("""
         CREATE TABLE IF NOT EXISTS settings (
             id INTEGER PRIMARY KEY CHECK (id = 1),
-            refresh_interval INTEGER DEFAULT 300,
+            refresh_interval INTEGER DEFAULT 600,
             min_score INTEGER DEFAULT 1,
             strong_words TEXT DEFAULT 'breaking,exclusive,surge,crash,boom,plunge',
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -153,9 +153,9 @@ async def _seed_defaults(db: aiosqlite.Connection):
     if settings_count == 0:
         await db.execute("""
             INSERT INTO settings (id, refresh_interval, min_score, strong_words)
-            VALUES (1, 300, 1, 'breaking,exclusive,surge,crash,boom,plunge')
+            VALUES (1, 600, 1, 'breaking,exclusive,surge,crash,boom,plunge')
         """)
-        print("Seeded default settings")
+        print("Seeded default settings (10 min refresh interval)")
     
     # Check if feeds exist
     cursor = await db.execute("SELECT COUNT(*) FROM feeds")
