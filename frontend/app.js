@@ -667,6 +667,153 @@ function highlightTicker(ticker) {
     renderArticles();
 }
 
+// ============ Ticker Autocomplete ============
+
+let autocompleteTimeout = null;
+let selectedAutocompleteIndex = -1;
+
+function setupTickerAutocomplete() {
+    const input = document.getElementById('ticker-symbol');
+    const dropdown = document.getElementById('ticker-autocomplete');
+    
+    if (!input || !dropdown) return;
+    
+    // Handle input changes (with debounce)
+    input.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        // Clear timeout
+        clearTimeout(autocompleteTimeout);
+        
+        if (query.length < 1) {
+            hideAutocomplete();
+            return;
+        }
+        
+        // Debounce: wait 300ms after user stops typing
+        autocompleteTimeout = setTimeout(() => {
+            searchTickers(query);
+        }, 300);
+    });
+    
+    // Handle keyboard navigation
+    input.addEventListener('keydown', (e) => {
+        const items = dropdown.querySelectorAll('.autocomplete-item');
+        
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedAutocompleteIndex = Math.min(selectedAutocompleteIndex + 1, items.length - 1);
+            updateAutocompleteSelection(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedAutocompleteIndex = Math.max(selectedAutocompleteIndex - 1, -1);
+            updateAutocompleteSelection(items);
+        } else if (e.key === 'Enter' && selectedAutocompleteIndex >= 0) {
+            e.preventDefault();
+            items[selectedAutocompleteIndex].click();
+        } else if (e.key === 'Escape') {
+            hideAutocomplete();
+        }
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            hideAutocomplete();
+        }
+    });
+}
+
+async function searchTickers(query) {
+    const dropdown = document.getElementById('ticker-autocomplete');
+    
+    try {
+        const response = await fetch(`/api/search/tickers?q=${encodeURIComponent(query)}`);
+        
+        if (!response.ok) {
+            console.error('Failed to search tickers:', response.statusText);
+            hideAutocomplete();
+            return;
+        }
+        
+        const data = await response.json();
+        displayAutocompleteResults(data.results);
+        
+    } catch (error) {
+        console.error('Error searching tickers:', error);
+        hideAutocomplete();
+    }
+}
+
+function displayAutocompleteResults(results) {
+    const dropdown = document.getElementById('ticker-autocomplete');
+    
+    if (!results || results.length === 0) {
+        dropdown.innerHTML = '<div class="autocomplete-item" style="color: var(--muted);">No results found</div>';
+        dropdown.removeAttribute('hidden');
+        return;
+    }
+    
+    dropdown.innerHTML = results.map(ticker => `
+        <div class="autocomplete-item" data-symbol="${ticker.symbol}" data-name="${ticker.name}">
+            <div class="autocomplete-item-main">
+                <div class="autocomplete-symbol">${ticker.symbol}</div>
+                <div class="autocomplete-name">${ticker.name}</div>
+            </div>
+            <div class="autocomplete-type">${ticker.type}</div>
+        </div>
+    `).join('');
+    
+    // Add click handlers
+    dropdown.querySelectorAll('.autocomplete-item').forEach((item, index) => {
+        item.addEventListener('click', () => {
+            selectTicker(item.dataset.symbol, item.dataset.name);
+        });
+    });
+    
+    dropdown.removeAttribute('hidden');
+    selectedAutocompleteIndex = -1;
+}
+
+function updateAutocompleteSelection(items) {
+    items.forEach((item, index) => {
+        if (index === selectedAutocompleteIndex) {
+            item.classList.add('active');
+            item.scrollIntoView({ block: 'nearest' });
+        } else {
+            item.classList.remove('active');
+        }
+    });
+}
+
+function selectTicker(symbol, name) {
+    const input = document.getElementById('ticker-symbol');
+    const companiesInput = document.getElementById('ticker-companies');
+    
+    // Set symbol
+    input.value = symbol;
+    
+    // Set company name (convert to lowercase, remove "Inc", "Corp", etc.)
+    const cleanName = name.toLowerCase()
+        .replace(/\s+(inc|corp|corporation|ltd|limited|plc|llc|class [a-z])\.?$/i, '')
+        .trim();
+    companiesInput.value = cleanName;
+    
+    hideAutocomplete();
+    
+    // Focus the companies input for review
+    companiesInput.focus();
+}
+
+function hideAutocomplete() {
+    const dropdown = document.getElementById('ticker-autocomplete');
+    if (dropdown) {
+        dropdown.setAttribute('hidden', '');
+        dropdown.innerHTML = '';
+    }
+    selectedAutocompleteIndex = -1;
+}
+
 // ============ Event Listeners ============
 
 function setupEventListeners() {
@@ -711,6 +858,7 @@ async function init() {
     setupSearchAndFilter();
     setupInfiniteScroll();
     setupAutoRefresh();
+    setupTickerAutocomplete();
     
     // Check tip banner
     checkTipBanner();

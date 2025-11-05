@@ -63,6 +63,7 @@ When enabled, you'll need to enter the token in the UI (Settings panel → Admin
 - **SQLite WAL Mode** - Improved concurrent access for read-heavy workloads
 - **Duplicate Detection** - URL-based deduplication to avoid storing the same article twice
 - **🔐 Optional Token Auth** - Protect admin endpoints with simple token-based authentication
+- **🔍 Ticker Autocomplete** - Smart search with 5,000+ tickers (US, Nordic, crypto) from local dataset
 - **Responsive Design** - Works on desktop, tablet, and mobile
 - **Dark Theme** - Easy on the eyes for long monitoring sessions
 
@@ -123,25 +124,67 @@ Now any article mentioning "Netflix" will automatically show the NFLX ticker bad
 
 Click on any ticker badge to filter articles for that specific ticker.
 
-## 🗂️ Project Structure
+## � Ticker Autocomplete
+
+When adding tickers, the application provides intelligent autocomplete powered by a local dataset of 5,000+ tickers:
+
+### Features
+- **Smart Search** - Type symbol (e.g., "AAPL") or company name (e.g., "Apple")
+- **Debounced Input** - 300ms delay prevents excessive API calls while typing
+- **Keyboard Navigation** - Use ↑/↓ arrows, Enter to select, Escape to close
+- **Auto-fill** - Automatically populates symbol and company name fields
+- **Global Coverage** - Includes US stocks, Scandinavian markets, ETFs, and cryptocurrencies
+
+### Supported Markets
+- 🇺🇸 **United States** - 13,000+ stocks (NASDAQ, NYSE, etc.)
+- 🇸🇪 **Sweden** - Nasdaq Stockholm (Volvo, Ericsson, H&M, etc.)
+- 🇳🇴 **Norway** - Oslo Børs (Equinor, DNB, Telenor, etc.)
+- 🇩🇰 **Denmark** - Nasdaq Copenhagen (Novo Nordisk, Maersk, Carlsberg, etc.)
+- 🇫🇮 **Finland** - Nasdaq Helsinki (Nokia, Neste, Fortum, etc.)
+- 💰 **Cryptocurrencies** - 14,000+ coins from CoinGecko
+- 📊 **ETFs & Indices** - Major funds (SPY, QQQ, DIA, etc.)
+
+### Dataset Generation
+The ticker dataset is generated from free sources and stored locally for fast autocomplete:
+
+```bash
+# Generate/update the ticker dataset
+python generate_tickers_dataset.py
+
+# Output: backend/tickers.json (0.53 MB, 5000 entries)
+```
+
+**Update Frequency:**
+- **Recommended**: Monthly (captures 95% of new IPOs and listings)
+- **Crypto-focused**: Weekly (high market dynamics)
+- **Conservative**: Quarterly (sufficient for established stocks)
+
+See [UPDATE_SCHEDULE.md](UPDATE_SCHEDULE.md) for detailed guidance on dataset maintenance.
+
+## �🗂️ Project Structure
 
 ```
 StockNews/
 ├── backend/
 │   ├── __init__.py
-│   ├── app.py          # FastAPI application & endpoints
-│   ├── db.py           # Database layer (aiosqlite)
-│   └── scraper.py      # RSS scraping & scoring logic
+│   ├── app.py                 # FastAPI application & endpoints
+│   ├── db.py                  # Database layer (aiosqlite)
+│   ├── scraper.py             # RSS scraping & scoring logic
+│   └── tickers.json           # Local ticker dataset (5000 entries)
 ├── frontend/
-│   ├── index.html      # UI structure
-│   ├── styles.css      # Dark theme styling
-│   └── app.js          # Frontend logic & WebSocket
-├── requirements.txt            # Python dependencies
+│   ├── index.html             # UI structure
+│   ├── styles.css             # Dark theme styling
+│   └── app.js                 # Frontend logic & WebSocket
+├── requirements.txt           # Python dependencies
 ├── run_dev.py                 # Local development server script
+├── generate_tickers_dataset.py    # Ticker dataset generator
 ├── test_company_matching.py   # Test suite for company matching
+├── validate_setup.py          # Configuration validator
 ├── Dockerfile                 # Container image definition
 ├── docker-compose.yml         # Orchestration config
-└── README.md                  # This file
+├── README.md                  # This file
+├── UPDATE_SCHEDULE.md         # Dataset update frequency guide
+└── TICKER_AUTOCOMPLETE.md     # Autocomplete feature documentation
 ```
 
 ## 🔌 API Endpoints
@@ -156,6 +199,7 @@ StockNews/
 - `POST /api/tickers` - Add ticker (body: `{symbol, company_names}`)
 - `PUT /api/tickers/{id}` - Update ticker company names (body: `{company_names}`)
 - `DELETE /api/tickers/{id}` - Delete ticker
+- `GET /api/search/tickers?q={query}` - Search tickers (autocomplete)
 
 ### Keywords
 - `GET /api/keywords` - List all keywords

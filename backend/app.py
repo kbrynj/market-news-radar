@@ -417,6 +417,47 @@ async def prune_articles(days: int = Query(7, ge=1, description="Delete articles
         raise HTTPException(status_code=500, detail=f"Failed to prune articles: {str(e)}")
 
 
+# Ticker search endpoint (for autocomplete)
+@app.get("/api/search/tickers")
+async def search_tickers(q: str = Query(..., min_length=1, max_length=50)):
+    """
+    Search tickers by symbol or name.
+    Returns matching tickers from local dataset (backend/tickers.json).
+    """
+    try:
+        import json
+        from pathlib import Path
+        
+        # Load tickers dataset
+        tickers_file = Path(__file__).parent / "tickers.json"
+        if not tickers_file.exists():
+            raise HTTPException(status_code=500, detail="Tickers dataset not found")
+        
+        with open(tickers_file, 'r', encoding='utf-8') as f:
+            all_tickers = json.load(f)
+        
+        # Normalize query
+        query = q.upper().strip()
+        
+        # Search: symbol starts with query OR name contains query
+        matches = []
+        for ticker in all_tickers:
+            symbol_match = ticker['symbol'].upper().startswith(query)
+            name_match = query in ticker['name'].upper()
+            
+            if symbol_match or name_match:
+                matches.append(ticker)
+                
+                # Limit results to 20 for performance
+                if len(matches) >= 20:
+                    break
+        
+        return {"results": matches}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to search tickers: {str(e)}")
+
+
 # Health check endpoint
 @app.get("/api/health")
 async def health_check():
