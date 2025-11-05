@@ -70,6 +70,13 @@ backup.db
 htmlcov/
 .tox/
 .hypothesis/
+test_*.pyc
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+update_tickers.py
 
 # OS
 Thumbs.db

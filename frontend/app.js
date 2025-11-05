@@ -238,8 +238,11 @@ async function loadTickers() {
         const tickersList = document.getElementById('tickers-list');
         
         tickersList.innerHTML = data.tickers.map(ticker => `
-            <li>
-                <span>${esc(ticker.symbol)}</span>
+            <li class="ticker-item">
+                <div class="ticker-info">
+                    <strong>${esc(ticker.symbol)}</strong>
+                    ${ticker.company_names ? `<br><small style="color: var(--muted);">${esc(ticker.company_names)}</small>` : ''}
+                </div>
                 <button onclick="deleteTicker(${ticker.id})" aria-label="Delete ticker">×</button>
             </li>
         `).join('');
@@ -252,18 +255,23 @@ async function addTicker(event) {
     event.preventDefault();
     
     const symbol = document.getElementById('ticker-symbol').value.trim().toUpperCase();
+    const companyNames = document.getElementById('ticker-companies').value.trim().toLowerCase();
     
     if (!symbol) return;
     
     try {
         await api('/api/tickers', {
             method: 'POST',
-            body: JSON.stringify({ symbol })
+            body: JSON.stringify({ 
+                symbol,
+                company_names: companyNames
+            })
         });
         
         document.getElementById('ticker-symbol').value = '';
+        document.getElementById('ticker-companies').value = '';
         
-        showToast('Ticker added successfully', 'success');
+        showToast(`Ticker ${symbol} added successfully`, 'success');
         loadTickers();
     } catch (error) {
         showToast('Failed to add ticker', 'error');

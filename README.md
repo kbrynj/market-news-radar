@@ -25,10 +25,12 @@ That's it! The application will:
 ### Core Functionality
 - **📰 RSS Feed Monitoring** - Add/remove RSS feeds with real-time scraping
 - **📈 Ticker Tracking** - Configure stock tickers (AAPL, TSLA, BTC, etc.) to monitor
+- **🏢 Company Name Matching** - Smart ticker detection via company names (e.g., "Apple" → AAPL)
 - **🔑 Keyword Matching** - Track specific keywords (earnings, IPO, merger, etc.)
 - **⚙️ Configurable Settings** - Adjust refresh intervals, scoring thresholds, and strong words
 - **🎯 Smart Scoring System** - Automatic relevance scoring based on content analysis
 - **😊 Sentiment Analysis** - VADER sentiment analysis for each article (compound score)
+- **🏷️ Ticker Badges** - Visual ticker tags on articles with click-to-filter functionality
 - **🔄 Auto-Refresh** - Articles automatically refresh every 30 seconds
 - **⚡ WebSocket Live Updates** - Real-time notifications when new articles arrive
 - **♾️ Infinite Scroll** - Seamless article browsing with pagination
@@ -52,6 +54,9 @@ score = (2 × matched_tickers) + keyword_hits + strong_word_bonus
 
 Where:
 - **`matched_tickers`** - Number of configured tickers found in the article (worth 2 points each)
+  - Matches ticker symbols directly (e.g., "AAPL", "$TSLA")
+  - Matches company names (e.g., "Apple Inc" → AAPL, "Tesla" → TSLA)
+  - Uses both static mappings (70+ companies) and dynamic database mappings
 - **`keyword_hits`** - Total count of keyword matches (can match multiple times)
 - **`strong_word_bonus`** - +1 if any "strong word" is present (e.g., breaking, exclusive, surge, crash)
 
@@ -71,6 +76,31 @@ Each article includes a VADER sentiment score (compound value from -1 to +1):
 
 The sentiment is calculated from the article's title and summary combined.
 
+## 🏢 Company Name Matching
+
+The application uses intelligent company name matching to detect relevant tickers in articles:
+
+### Two-Tier Matching System
+1. **Static Mappings** - 70+ pre-configured company names (Apple→AAPL, Tesla→TSLA, etc.)
+2. **Dynamic Mappings** - User-configurable company names stored in database
+
+### Adding Company Names to Tickers
+When adding a ticker, you can specify comma-separated company name variations:
+```
+Ticker: NFLX
+Company Names: netflix,netflix inc,netflix incorporated
+```
+
+Now any article mentioning "Netflix" will automatically show the NFLX ticker badge.
+
+### Examples of Auto-Detection
+- "Apple announced..." → **AAPL** badge
+- "Tesla CEO Elon Musk..." → **TSLA** badge
+- "Microsoft and Google..." → **MSFT** and **GOOGL** badges
+- "Bitcoin hit new highs..." → **BTC** badge
+
+Click on any ticker badge to filter articles for that specific ticker.
+
 ## 🗂️ Project Structure
 
 ```
@@ -84,10 +114,12 @@ StockNews/
 │   ├── index.html      # UI structure
 │   ├── styles.css      # Dark theme styling
 │   └── app.js          # Frontend logic & WebSocket
-├── requirements.txt    # Python dependencies
-├── Dockerfile          # Container image definition
-├── docker-compose.yml  # Orchestration config
-└── README.md          # This file
+├── requirements.txt            # Python dependencies
+├── run_dev.py                 # Local development server script
+├── test_company_matching.py   # Test suite for company matching
+├── Dockerfile                 # Container image definition
+├── docker-compose.yml         # Orchestration config
+└── README.md                  # This file
 ```
 
 ## 🔌 API Endpoints
@@ -99,7 +131,8 @@ StockNews/
 
 ### Tickers
 - `GET /api/tickers` - List all tickers
-- `POST /api/tickers` - Add ticker (body: `{symbol}`)
+- `POST /api/tickers` - Add ticker (body: `{symbol, company_names}`)
+- `PUT /api/tickers/{id}` - Update ticker company names (body: `{company_names}`)
 - `DELETE /api/tickers/{id}` - Delete ticker
 
 ### Keywords
@@ -145,13 +178,22 @@ docker compose exec news sqlite3 /data/news.db
 - **Strong Words**: breaking, exclusive, surge, crash, boom, plunge
 
 ### Default Feeds
-- Yahoo Finance
-- CNBC Top News
-- Reuters Business
-- Bloomberg Markets
+- CoinDesk (Crypto news)
+- MarketWatch Top Stories
+- Seeking Alpha
+- Yahoo Finance News
 
-### Default Tickers
-AAPL, MSFT, GOOGL, AMZN, TSLA, META, NVDA, BTC, ETH, SPY
+### Default Tickers (with Company Name Mappings)
+- **AAPL** - apple, apple inc
+- **MSFT** - microsoft, microsoft corp
+- **GOOGL** - google, alphabet, alphabet inc
+- **AMZN** - amazon, amazon.com
+- **TSLA** - tesla, tesla inc
+- **META** - meta, facebook, meta platforms
+- **NVDA** - nvidia, nvidia corp
+- **BTC** - bitcoin, btc
+- **ETH** - ethereum, eth
+- **SPY** - s&p 500, s&p, spdr
 
 ### Default Keywords
 earnings, revenue, profit, loss, merger, acquisition, IPO, stock, market, trade
@@ -160,18 +202,35 @@ All defaults can be modified through the UI after startup.
 
 ## 🛠️ Development
 
-### Without Docker
+### Local Development Setup
 
 ```bash
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# Windows:
+.\.venv\Scripts\activate
+# Linux/Mac:
+source .venv/bin/activate
+
 # Install dependencies
 pip install -r requirements.txt
 
-# Set database path (optional, defaults to /data/news.db)
-export DB_PATH=./news.db
-
-# Run the server
-uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
+# Run development server with hot reload
+python run_dev.py
 ```
+
+The development server uses `./data/news.db` for local testing and includes hot reload on file changes.
+
+### Testing Company Name Matching
+
+```bash
+# Run the test suite
+python test_company_matching.py
+```
+
+This script verifies that company name matching works correctly with 8+ test cases covering various scenarios.
 
 ### With Docker (rebuild after changes)
 

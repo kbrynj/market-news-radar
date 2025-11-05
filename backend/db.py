@@ -60,6 +60,7 @@ async def init_db():
         CREATE TABLE IF NOT EXISTS tickers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             symbol TEXT UNIQUE NOT NULL,
+            company_names TEXT DEFAULT '',
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -129,6 +130,15 @@ async def init_db():
         # Column already exists, ignore
         pass
     
+    # Migration: Add company_names column to tickers if it doesn't exist
+    try:
+        await db.execute("ALTER TABLE tickers ADD COLUMN company_names TEXT DEFAULT ''")
+        await db.commit()
+        print("Migration: Added company_names column to tickers table")
+    except aiosqlite.OperationalError:
+        # Column already exists, ignore
+        pass
+    
     # Seed default data if tables are empty
     await _seed_defaults(db)
 
@@ -177,15 +187,23 @@ async def _seed_defaults(db: aiosqlite.Connection):
     
     if tickers_count == 0:
         default_tickers = [
-            "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", 
-            "META", "NVDA", "BTC", "ETH", "SPY"
+            ("AAPL", "apple,apple inc"),
+            ("MSFT", "microsoft,microsoft corporation"),
+            ("GOOGL", "google,alphabet,alphabet inc"),
+            ("AMZN", "amazon,amazon.com"),
+            ("TSLA", "tesla,tesla motors"),
+            ("META", "meta,facebook,meta platforms"),
+            ("NVDA", "nvidia,nvidia corporation"),
+            ("BTC", "bitcoin"),
+            ("ETH", "ethereum"),
+            ("SPY", "s&p 500,s&p,spy")
         ]
         
-        for symbol in default_tickers:
+        for symbol, company_names in default_tickers:
             try:
                 await db.execute(
-                    "INSERT INTO tickers (symbol) VALUES (?)",
-                    (symbol,)
+                    "INSERT INTO tickers (symbol, company_names) VALUES (?, ?)",
+                    (symbol, company_names)
                 )
             except aiosqlite.IntegrityError:
                 pass
@@ -262,15 +280,25 @@ async def get_all_tickers() -> List[Dict[str, Any]]:
     return [row_to_dict(cursor, row) for row in rows]
 
 
-async def add_ticker(symbol: str) -> int:
-    """Add a new ticker. Returns ticker ID."""
+async def add_ticker(symbol: str, company_names: str = "") -> int:
+    """Add a new ticker with optional company name aliases. Returns ticker ID."""
     db = await get_db()
     cursor = await db.execute(
-        "INSERT INTO tickers (symbol) VALUES (?)",
-        (symbol.upper(),)
+        "INSERT INTO tickers (symbol, company_names) VALUES (?, ?)",
+        (symbol.upper(), company_names.lower())
     )
     await db.commit()
     return cursor.lastrowid
+
+
+async def update_ticker_company_names(ticker_id: int, company_names: str):
+    """Update company names for a ticker."""
+    db = await get_db()
+    await db.execute(
+        "UPDATE tickers SET company_names = ? WHERE id = ?",
+        (company_names.lower(), ticker_id)
+    )
+    await db.commit()
 
 
 async def delete_ticker(ticker_id: int):

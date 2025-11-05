@@ -167,7 +167,8 @@ def calculate_score(
     text: str,
     tickers: List[str],
     keywords: List[str],
-    strong_words: List[str]
+    strong_words: List[str],
+    company_mapping: Dict[str, str] = None
 ) -> Tuple[int, List[str]]:
     """
     Calculate article score based on matched tickers, keywords, and strong words.
@@ -199,7 +200,10 @@ def calculate_score(
             matched_tickers.add(ticker)
     
     # Method 2: Company name matching
-    for company_name, ticker_symbol in COMPANY_TO_TICKER.items():
+    if company_mapping is None:
+        company_mapping = COMPANY_TO_TICKER
+    
+    for company_name, ticker_symbol in company_mapping.items():
         # Only check if this ticker is in our configured list
         if ticker_symbol in tickers:
             # Check if company name appears in text
@@ -241,7 +245,8 @@ async def process_feed_entries(
     tickers: List[str],
     keywords: List[str],
     strong_words: List[str],
-    ticker_map: Dict[str, int]
+    ticker_map: Dict[str, int],
+    company_mapping: Dict[str, str]
 ) -> List[Dict]:
     """Process entries from a feed and return article data."""
     articles = []
@@ -283,7 +288,7 @@ async def process_feed_entries(
             
             # Calculate score and find matched tickers
             score, matched_ticker_symbols = calculate_score(
-                full_text, tickers, keywords, strong_words
+                full_text, tickers, keywords, strong_words, company_mapping
             )
             
             # Get ticker IDs for matched tickers
@@ -340,6 +345,20 @@ async def run_cycle() -> int:
     tickers = [t['symbol'] for t in tickers_data]
     ticker_map = {t['symbol']: t['id'] for t in tickers_data}
     
+    # Build dynamic company-to-ticker mapping from database
+    company_to_ticker_dynamic = {}
+    for ticker_data in tickers_data:
+        company_names_str = ticker_data.get('company_names', '')
+        if company_names_str:
+            # Split by comma and add each company name
+            for company_name in company_names_str.split(','):
+                company_name = company_name.strip().lower()
+                if company_name:
+                    company_to_ticker_dynamic[company_name] = ticker_data['symbol']
+    
+    # Merge with static mapping (database takes precedence)
+    active_company_mapping = {**COMPANY_TO_TICKER, **company_to_ticker_dynamic}
+    
     keywords_data = await db.get_all_keywords()
     keywords = [k['word'] for k in keywords_data]
     
@@ -378,7 +397,8 @@ async def run_cycle() -> int:
                     tickers,
                     keywords,
                     strong_words,
-                    ticker_map
+                    ticker_map,
+                    active_company_mapping
                 )
                 process_tasks.append(task)
         

@@ -296,6 +296,27 @@ a:hover {
     width: auto;
 }
 
+/* Ticker Item */
+.ticker-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.625rem 0.75rem !important;
+}
+
+.ticker-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.ticker-info small {
+    font-size: 0.75rem;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
 /* Results Container */
 .results-container {
     display: flex;

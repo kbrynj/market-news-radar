@@ -130,17 +130,25 @@
             <!-- Tickers -->
             <section class="settings-section">
                 <h3 class="section-title">📈 Tickers</h3>
-                <ul id="tickers-list" class="item-list tags-list" role="list">
+                <ul id="tickers-list" class="item-list" role="list">
                     <!-- Tickers will be loaded here -->
                 </ul>
                 <form id="add-ticker-form" class="add-form">
                     <input 
                         type="text" 
                         id="ticker-symbol" 
-                        placeholder="Ticker symbol (e.g., AAPL)"
+                        placeholder="Symbol (e.g., AAPL)"
                         class="form-input"
                         maxlength="10"
                         required
+                    >
+                    <input 
+                        type="text" 
+                        id="ticker-companies" 
+                        placeholder="Company names (e.g., apple,apple inc)"
+                        class="form-input"
+                        maxlength="500"
+                        title="Comma-separated company name aliases"
                     >
                     <button type="submit" class="btn btn-small btn-secondary">
                         + Add Ticker
@@ -229,8 +237,14 @@
                         </section>
                         
                         <section class="info-section">
-                            <h3>📈 Ticker Badges</h3>
-                            <p>Blue badges show which stocks/cryptocurrencies the article mentions. Click a ticker in an article to see it highlighted across all results.</p>
+                            <h3>📈 Ticker Detection</h3>
+                            <p>Articles are matched to tickers in two ways:</p>
+                            <ul>
+                                <li><strong>Symbol matching:</strong> Detects ticker symbols like $AAPL, (TSLA), etc.</li>
+                                <li><strong>Company name matching:</strong> Matches company names you configure (e.g., "apple" → AAPL)</li>
+                            </ul>
+                            <p class="note">💡 Tip: When adding tickers, include company name aliases (comma-separated) for better detection!</p>
+                            <p class="example">Example: Add ticker "NVDA" with names "nvidia,nvidia corporation" to catch all mentions.</p>
                         </section>
                     </div>
                 </div>

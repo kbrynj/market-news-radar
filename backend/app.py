@@ -28,6 +28,7 @@ class FeedCreate(BaseModel):
 
 class TickerCreate(BaseModel):
     symbol: str = Field(..., min_length=1, max_length=10)
+    company_names: str = Field(default="", max_length=500)
 
 
 class KeywordCreate(BaseModel):
@@ -229,9 +230,9 @@ async def get_tickers():
 
 @app.post("/api/tickers")
 async def create_ticker(ticker: TickerCreate):
-    """Add a new ticker."""
+    """Add a new ticker with optional company name aliases."""
     try:
-        ticker_id = await db.add_ticker(ticker.symbol)
+        ticker_id = await db.add_ticker(ticker.symbol, ticker.company_names)
         return {"id": ticker_id, "message": "Ticker added successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to add ticker: {str(e)}")
@@ -245,6 +246,16 @@ async def delete_ticker(ticker_id: int):
         return {"message": "Ticker deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to delete ticker: {str(e)}")
+
+
+@app.put("/api/tickers/{ticker_id}")
+async def update_ticker(ticker_id: int, company_names: str = Query(..., max_length=500)):
+    """Update company name aliases for a ticker."""
+    try:
+        await db.update_ticker_company_names(ticker_id, company_names)
+        return {"message": "Company names updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to update ticker: {str(e)}")
 
 
 # ============ Keyword Endpoints ============
