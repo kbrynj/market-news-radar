@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  news:
+    build: .
+    container_name: market-news-radar
+    ports:
+      - "8000:8000"
+    volumes:
+      - news-data:/data
+    restart: unless-stopped
+    environment:
+      - DB_PATH=/data/news.db
+
+volumes:
+  news-data:

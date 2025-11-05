@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market News Radar</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <h1 class="header-title">📡 Market News Radar</h1>
+            
+            <div class="header-controls">
+                <!-- Search Input -->
+                <div class="control-group">
+                    <label for="search-input" class="sr-only">Search</label>
+                    <input 
+                        type="text" 
+                        id="search-input" 
+                        class="search-input" 
+                        placeholder="Search articles..."
+                        aria-label="Search articles"
+                    >
+                </div>
+                
+                <!-- Min Score Filter -->
+                <div class="control-group">
+                    <label for="min-score-select" class="control-label">Min Score:</label>
+                    <select id="min-score-select" class="score-select" aria-label="Minimum score filter">
+                        <option value="">All</option>
+                        <option value="1">1+</option>
+                        <option value="2">2+</option>
+                        <option value="3">3+</option>
+                        <option value="5">5+</option>
+                        <option value="10">10+</option>
+                    </select>
+                </div>
+                
+                <!-- Refresh Button -->
+                <button id="refresh-btn" class="btn btn-primary" aria-label="Refresh now">
+                    🔄 Refresh Now
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <!-- Left Sidebar: Settings Panel -->
+        <aside class="settings-panel">
+            <h2 class="panel-title">⚙️ Settings</h2>
+            
+            <!-- General Settings -->
+            <section class="settings-section">
+                <h3 class="section-title">General</h3>
+                <form id="general-settings-form" class="settings-form">
+                    <div class="form-group">
+                        <label for="refresh-interval">Refresh Interval (seconds):</label>
+                        <input 
+                            type="number" 
+                            id="refresh-interval" 
+                            name="refresh_interval"
+                            min="10" 
+                            value="300"
+                            class="form-input"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="min-score-default">Min Score to Show:</label>
+                        <input 
+                            type="number" 
+                            id="min-score-default" 
+                            name="min_score"
+                            min="0" 
+                            value="1"
+                            class="form-input"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="strong-words">Strong Words (comma-separated):</label>
+                        <textarea 
+                            id="strong-words" 
+                            name="strong_words"
+                            class="form-textarea"
+                            rows="3"
+                            placeholder="breaking,exclusive,surge,crash"
+                            required
+                        ></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-secondary btn-block">
+                        Save Settings
+                    </button>
+                </form>
+            </section>
+
+            <!-- RSS Feeds -->
+            <section class="settings-section">
+                <h3 class="section-title">📰 RSS Feeds</h3>
+                <ul id="feeds-list" class="item-list" role="list">
+                    <!-- Feeds will be loaded here -->
+                </ul>
+                <form id="add-feed-form" class="add-form">
+                    <input 
+                        type="text" 
+                        id="feed-name" 
+                        placeholder="Feed name"
+                        class="form-input"
+                        required
+                    >
+                    <input 
+                        type="url" 
+                        id="feed-url" 
+                        placeholder="RSS URL"
+                        class="form-input"
+                        required
+                    >
+                    <button type="submit" class="btn btn-small btn-secondary">
+                        + Add Feed
+                    </button>
+                </form>
+            </section>
+
+            <!-- Tickers -->
+            <section class="settings-section">
+                <h3 class="section-title">📈 Tickers</h3>
+                <ul id="tickers-list" class="item-list tags-list" role="list">
+                    <!-- Tickers will be loaded here -->
+                </ul>
+                <form id="add-ticker-form" class="add-form">
+                    <input 
+                        type="text" 
+                        id="ticker-symbol" 
+                        placeholder="Ticker symbol (e.g., AAPL)"
+                        class="form-input"
+                        maxlength="10"
+                        required
+                    >
+                    <button type="submit" class="btn btn-small btn-secondary">
+                        + Add Ticker
+                    </button>
+                </form>
+            </section>
+
+            <!-- Keywords -->
+            <section class="settings-section">
+                <h3 class="section-title">🔑 Keywords</h3>
+                <ul id="keywords-list" class="item-list tags-list" role="list">
+                    <!-- Keywords will be loaded here -->
+                </ul>
+                <form id="add-keyword-form" class="add-form">
+                    <input 
+                        type="text" 
+                        id="keyword-word" 
+                        placeholder="Keyword"
+                        class="form-input"
+                        maxlength="50"
+                        required
+                    >
+                    <button type="submit" class="btn btn-small btn-secondary">
+                        + Add Keyword
+                    </button>
+                </form>
+            </section>
+
+            <!-- Maintenance -->
+            <section class="settings-section">
+                <h3 class="section-title">🗑️ Maintenance</h3>
+                <button id="prune-btn" class="btn btn-danger btn-block">
+                    Delete Articles Older Than 7 Days
+                </button>
+            </section>
+        </aside>
+
+        <!-- Right Content: Results -->
+        <div class="results-container">
+            <!-- Meta Information -->
+            <div class="results-meta">
+                <div class="meta-status">
+                    <span id="connection-status" class="status-badge status-connecting">
+                        ⚡ Connecting...
+                    </span>
+                    <span id="auto-refresh-status" class="status-text">
+                        Auto-refresh: 30s
+                    </span>
+                </div>
+                <div class="meta-info">
+                    <span id="results-count">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Article Cards Container -->
+            <div id="articles-container" class="articles-container" role="feed" aria-live="polite">
+                <!-- Loading indicator -->
+                <div class="loading-indicator">
+                    <div class="spinner"></div>
+                    <p>Loading articles...</p>
+                </div>
+            </div>
+
+            <!-- Load More / Infinite Scroll Trigger -->
+            <div id="load-more-trigger" class="load-more-trigger">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <span id="toast-message"></span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/app.js"></script>
+</body>
+</html>
