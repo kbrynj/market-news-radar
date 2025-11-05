@@ -31,5 +31,9 @@ EXPOSE 8000
 # Volume for persistent data
 VOLUME /data
 
+# Environment variables (can be overridden by docker-compose or docker run)
+# ADMIN_TOKEN - Optional admin authentication token
+# DB_PATH - Database path (default: /data/news.db)
+
 # Run the application
 CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
