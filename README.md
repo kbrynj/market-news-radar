@@ -20,6 +20,27 @@ That's it! The application will:
 - Start scraping RSS feeds every 5 minutes (configurable)
 - Serve the web interface on port 8000
 
+### 🔐 Optional: Enable Admin Authentication
+
+To protect administrative endpoints (POST/PUT/DELETE operations), set an admin token:
+
+```bash
+# With Docker Compose
+ADMIN_TOKEN=your-secret-token docker compose up -d
+
+# Or add to .env file:
+echo "ADMIN_TOKEN=your-secret-token" > .env
+docker compose up -d
+```
+
+When enabled, you'll need to enter the token in the UI (Settings panel → Admin Token field) to:
+- Add/remove feeds, tickers, or keywords
+- Modify settings
+- Trigger manual refresh
+- Prune old articles
+
+**Note**: If no `ADMIN_TOKEN` is set, all endpoints remain open (single-user mode).
+
 ## ✨ Features
 
 ### Core Functionality
@@ -41,6 +62,7 @@ That's it! The application will:
 - **Async Everything** - aiohttp for RSS fetching, aiosqlite for database, FastAPI async endpoints
 - **SQLite WAL Mode** - Improved concurrent access for read-heavy workloads
 - **Duplicate Detection** - URL-based deduplication to avoid storing the same article twice
+- **🔐 Optional Token Auth** - Protect admin endpoints with simple token-based authentication
 - **Responsive Design** - Works on desktop, tablet, and mobile
 - **Dark Theme** - Easy on the eyes for long monitoring sessions
 
@@ -171,6 +193,10 @@ docker compose exec news sqlite3 /data/news.db
 ```
 
 ## ⚙️ Configuration
+
+### Environment Variables
+- **`ADMIN_TOKEN`** (optional) - Enables token-based authentication for admin endpoints. If not set, all endpoints remain open.
+- **`DB_PATH`** (optional) - Custom database path. Defaults to `/data/news.db` in Docker, `./data/news.db` locally.
 
 ### Default Settings
 - **Refresh Interval**: 300 seconds (5 minutes)

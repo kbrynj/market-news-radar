@@ -5,7 +5,7 @@ FastAPI Application for Market News Radar
 - Background scraper task
 - Static file serving for frontend
 """
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Header, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -18,6 +18,10 @@ import json
 
 from . import db
 from . import scraper
+
+
+# Get admin token from environment (optional)
+ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", None)
 
 
 # Pydantic models for API requests/responses
@@ -45,6 +49,31 @@ class SettingsUpdate(BaseModel):
         if v is not None and len(v) > 500:
             raise ValueError('strong_words too long')
         return v
+
+
+# Admin token dependency
+async def verify_admin_token(x_admin_token: Optional[str] = Header(None)):
+    """
+    Verify admin token if ADMIN_TOKEN is set.
+    If no token is configured, allow all requests (open mode).
+    """
+    if ADMIN_TOKEN is None:
+        # No token configured - allow request
+        return True
+    
+    if x_admin_token is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Admin authentication required. Set x-admin-token header."
+        )
+    
+    if x_admin_token != ADMIN_TOKEN:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid admin token"
+        )
+    
+    return True
 
 
 # WebSocket connection manager
@@ -190,7 +219,7 @@ async def get_feeds():
 
 
 @app.post("/api/feeds")
-async def create_feed(feed: FeedCreate):
+async def create_feed(feed: FeedCreate, _admin: bool = Depends(verify_admin_token)):
     """Add a new RSS feed."""
     try:
         feed_id = await db.add_feed(feed.url, feed.name)
@@ -200,7 +229,7 @@ async def create_feed(feed: FeedCreate):
 
 
 @app.delete("/api/feeds/{feed_id}")
-async def delete_feed(feed_id: int):
+async def delete_feed(feed_id: int, _admin: bool = Depends(verify_admin_token)):
     """Delete an RSS feed."""
     try:
         await db.delete_feed(feed_id)
@@ -210,7 +239,7 @@ async def delete_feed(feed_id: int):
 
 
 @app.put("/api/feeds/{feed_id}/toggle")
-async def toggle_feed(feed_id: int, active: bool = Query(...)):
+async def toggle_feed(feed_id: int, active: bool = Query(...), _admin: bool = Depends(verify_admin_token)):
     """Toggle feed active status."""
     try:
         await db.toggle_feed(feed_id, active)
@@ -229,7 +258,7 @@ async def get_tickers():
 
 
 @app.post("/api/tickers")
-async def create_ticker(ticker: TickerCreate):
+async def create_ticker(ticker: TickerCreate, _admin: bool = Depends(verify_admin_token)):
     """Add a new ticker with optional company name aliases."""
     try:
         ticker_id = await db.add_ticker(ticker.symbol, ticker.company_names)
@@ -239,7 +268,7 @@ async def create_ticker(ticker: TickerCreate):
 
 
 @app.delete("/api/tickers/{ticker_id}")
-async def delete_ticker(ticker_id: int):
+async def delete_ticker(ticker_id: int, _admin: bool = Depends(verify_admin_token)):
     """Delete a ticker."""
     try:
         await db.delete_ticker(ticker_id)
@@ -249,7 +278,7 @@ async def delete_ticker(ticker_id: int):
 
 
 @app.put("/api/tickers/{ticker_id}")
-async def update_ticker(ticker_id: int, company_names: str = Query(..., max_length=500)):
+async def update_ticker(ticker_id: int, company_names: str = Query(..., max_length=500), _admin: bool = Depends(verify_admin_token)):
     """Update company name aliases for a ticker."""
     try:
         await db.update_ticker_company_names(ticker_id, company_names)
@@ -268,7 +297,7 @@ async def get_keywords():
 
 
 @app.post("/api/keywords")
-async def create_keyword(keyword: KeywordCreate):
+async def create_keyword(keyword: KeywordCreate, _admin: bool = Depends(verify_admin_token)):
     """Add a new keyword."""
     try:
         keyword_id = await db.add_keyword(keyword.word)
@@ -278,7 +307,7 @@ async def create_keyword(keyword: KeywordCreate):
 
 
 @app.delete("/api/keywords/{keyword_id}")
-async def delete_keyword(keyword_id: int):
+async def delete_keyword(keyword_id: int, _admin: bool = Depends(verify_admin_token)):
     """Delete a keyword."""
     try:
         await db.delete_keyword(keyword_id)
@@ -297,7 +326,7 @@ async def get_settings():
 
 
 @app.put("/api/settings")
-async def update_settings(settings: SettingsUpdate):
+async def update_settings(settings: SettingsUpdate, _admin: bool = Depends(verify_admin_token)):
     """Update settings."""
     try:
         await db.update_settings(
@@ -344,7 +373,7 @@ async def get_articles(
 
 
 @app.post("/api/refresh")
-async def manual_refresh():
+async def manual_refresh(_admin: bool = Depends(verify_admin_token)):
     """Manually trigger a scrape cycle."""
     try:
         print("Manual refresh triggered")
@@ -367,7 +396,7 @@ async def manual_refresh():
 
 
 @app.delete("/api/articles")
-async def prune_articles(days: int = Query(7, ge=1, description="Delete articles older than X days")):
+async def prune_articles(days: int = Query(7, ge=1, description="Delete articles older than X days"), _admin: bool = Depends(verify_admin_token)):
     """Delete articles older than specified days."""
     try:
         cutoff_timestamp = int((datetime.now() - timedelta(days=days)).timestamp())

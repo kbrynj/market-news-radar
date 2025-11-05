@@ -55,6 +55,25 @@
             <!-- General Settings -->
             <section class="settings-section">
                 <h3 class="section-title">General</h3>
+                
+                <!-- Admin Token -->
+                <div class="form-group" style="margin-bottom: 20px; padding: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 6px;">
+                    <label for="admin-token" style="display: flex; align-items: center; gap: 5px;">
+                        🔐 Admin Token
+                        <span style="font-size: 0.85em; opacity: 0.7;">(optional)</span>
+                    </label>
+                    <input 
+                        type="password" 
+                        id="admin-token" 
+                        class="form-input"
+                        placeholder="Leave empty if not required"
+                        style="margin-top: 5px;"
+                    >
+                    <small style="display: block; margin-top: 5px; opacity: 0.7; font-size: 0.85em;">
+                        Required for modifying feeds, tickers, keywords, and settings if server has ADMIN_TOKEN set.
+                    </small>
+                </div>
+                
                 <form id="general-settings-form" class="settings-form">
                     <div class="form-group">
                         <label for="refresh-interval">Refresh Interval (seconds):</label>

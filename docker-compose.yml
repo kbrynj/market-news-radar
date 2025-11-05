@@ -11,6 +11,9 @@ services:
     restart: unless-stopped
     environment:
       - DB_PATH=/data/news.db
+      # Optional: Enable admin authentication
+      # - ADMIN_TOKEN=your-secret-token-here
+      # You can also use .env file to set ADMIN_TOKEN
 
 volumes:
   news-data:

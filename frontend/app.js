@@ -13,6 +13,20 @@ let currentMinScore = null;
 let ws = null;
 let autoRefreshInterval = null;
 
+// Helper: Get Admin Token from localStorage
+function getAdminToken() {
+    return localStorage.getItem('adminToken') || '';
+}
+
+// Helper: Set Admin Token in localStorage
+function setAdminToken(token) {
+    if (token) {
+        localStorage.setItem('adminToken', token);
+    } else {
+        localStorage.removeItem('adminToken');
+    }
+}
+
 // Helper: Escape HTML
 function esc(str) {
     const div = document.createElement('div');
@@ -23,11 +37,22 @@ function esc(str) {
 // Helper: API Fetch
 async function api(endpoint, options = {}) {
     try {
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+        
+        // Add admin token for non-GET requests
+        const method = (options.method || 'GET').toUpperCase();
+        if (method !== 'GET') {
+            const token = getAdminToken();
+            if (token) {
+                headers['x-admin-token'] = token;
+            }
+        }
+        
         const response = await fetch(endpoint, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
+            headers,
             ...options
         });
         
@@ -619,6 +644,23 @@ function setupEventListeners() {
     // Buttons
     document.getElementById('refresh-btn').addEventListener('click', manualRefresh);
     document.getElementById('prune-btn').addEventListener('click', pruneArticles);
+    
+    // Admin Token input
+    const adminTokenInput = document.getElementById('admin-token');
+    if (adminTokenInput) {
+        // Load saved token on startup
+        adminTokenInput.value = getAdminToken();
+        
+        // Save token when it changes
+        adminTokenInput.addEventListener('change', (e) => {
+            setAdminToken(e.target.value.trim());
+            if (e.target.value.trim()) {
+                showToast('Admin token saved', 'success');
+            } else {
+                showToast('Admin token cleared', 'info');
+            }
+        });
+    }
     
     // Modal
     setupModal();
