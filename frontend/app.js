@@ -35,6 +35,30 @@ function esc(str) {
     return div.innerHTML;
 }
 
+// Theme Switching
+function setupThemeToggle() {
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = themeToggle.querySelector('.theme-icon');
+    
+    // Load saved theme or default to dark
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    applyTheme(savedTheme);
+    
+    // Toggle theme on button click
+    themeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.dataset.theme || 'dark';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        applyTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
+    });
+    
+    function applyTheme(theme) {
+        document.documentElement.dataset.theme = theme;
+        // Update icon: moon for dark mode, sun for light mode
+        themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
+    }
+}
+
 // Helper: API Fetch
 async function api(endpoint, options = {}) {
     try {
@@ -859,6 +883,7 @@ async function init() {
     setupInfiniteScroll();
     setupAutoRefresh();
     setupTickerAutocomplete();
+    setupThemeToggle();
     
     // Check tip banner
     checkTipBanner();

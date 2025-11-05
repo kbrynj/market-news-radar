@@ -65,7 +65,7 @@ When enabled, you'll need to enter the token in the UI (Settings panel → Admin
 - **🔐 Optional Token Auth** - Protect admin endpoints with simple token-based authentication
 - **🔍 Ticker Autocomplete** - Smart search with 5,000+ tickers (US, Nordic, crypto) from local dataset
 - **Responsive Design** - Works on desktop, tablet, and mobile
-- **Dark Theme** - Easy on the eyes for long monitoring sessions
+- **🌙 Light/Dark Theme Toggle** - Switch between light and dark modes with persistent preference
 
 ## 📊 Scoring Formula
 
