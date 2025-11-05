@@ -10,6 +10,7 @@ let isLoading = false;
 let hasMore = true;
 let currentSearch = '';
 let currentMinScore = null;
+let currentTickerFilter = null;
 let ws = null;
 let autoRefreshInterval = null;
 
@@ -271,6 +272,23 @@ async function loadTickers() {
                 <button onclick="deleteTicker(${ticker.id})" aria-label="Delete ticker">×</button>
             </li>
         `).join('');
+        
+        // Also populate the ticker filter dropdown
+        const tickerFilterSelect = document.getElementById('ticker-filter-select');
+        if (tickerFilterSelect) {
+            // Keep the current selection if any
+            const currentValue = tickerFilterSelect.value;
+            
+            tickerFilterSelect.innerHTML = '<option value="">All Tickers</option>' + 
+                data.tickers.map(ticker => 
+                    `<option value="${esc(ticker.symbol)}">${esc(ticker.symbol)}</option>`
+                ).join('');
+            
+            // Restore selection if it still exists
+            if (currentValue && data.tickers.some(t => t.symbol === currentValue)) {
+                tickerFilterSelect.value = currentValue;
+            }
+        }
     } catch (error) {
         showToast('Failed to load tickers', 'error');
     }
@@ -428,12 +446,25 @@ async function loadArticles(append = false) {
 function renderArticles() {
     const container = document.getElementById('articles-container');
     
-    if (articles.length === 0) {
-        container.innerHTML = '<div class="loading-indicator"><p>No articles found</p></div>';
+    // Filter articles by ticker if filter is active
+    let filteredArticles = articles;
+    if (currentTickerFilter) {
+        filteredArticles = articles.filter(article => {
+            if (!article.tickers) return false;
+            const articleTickers = article.tickers.split(',').filter(t => t);
+            return articleTickers.includes(currentTickerFilter);
+        });
+    }
+    
+    if (filteredArticles.length === 0) {
+        const message = currentTickerFilter 
+            ? `No articles found for ticker: ${currentTickerFilter}`
+            : 'No articles found';
+        container.innerHTML = `<div class="loading-indicator"><p>${message}</p></div>`;
         return;
     }
     
-    container.innerHTML = articles.map(article => {
+    container.innerHTML = filteredArticles.map(article => {
         const tickers = article.tickers ? article.tickers.split(',').filter(t => t) : [];
         const sentimentClass = getSentimentClass(article.sentiment);
         
@@ -526,6 +557,7 @@ async function pruneArticles() {
 function setupSearchAndFilter() {
     const searchInput = document.getElementById('search-input');
     const minScoreSelect = document.getElementById('min-score-select');
+    const tickerFilterSelect = document.getElementById('ticker-filter-select');
     
     let searchTimeout;
     
@@ -540,6 +572,11 @@ function setupSearchAndFilter() {
     minScoreSelect.addEventListener('change', (e) => {
         currentMinScore = e.target.value ? parseInt(e.target.value) : null;
         reloadArticles();
+    });
+    
+    tickerFilterSelect.addEventListener('change', (e) => {
+        currentTickerFilter = e.target.value || null;
+        renderArticles(); // Just re-render, don't reload from API
     });
 }
 
@@ -609,27 +646,25 @@ function setupModal() {
 let highlightedTicker = null;
 
 function highlightTicker(ticker) {
-    // Toggle highlight
-    if (highlightedTicker === ticker) {
-        // Remove highlight
-        document.querySelectorAll('.chip.ticker').forEach(chip => {
-            chip.classList.remove('highlighted');
-        });
+    const tickerFilterSelect = document.getElementById('ticker-filter-select');
+    
+    // Toggle filter
+    if (currentTickerFilter === ticker) {
+        // Remove filter
+        currentTickerFilter = null;
+        if (tickerFilterSelect) tickerFilterSelect.value = '';
         highlightedTicker = null;
+        showToast(`Showing all tickers`, 'info');
     } else {
-        // Add highlight
-        document.querySelectorAll('.chip.ticker').forEach(chip => {
-            if (chip.dataset.ticker === ticker) {
-                chip.classList.add('highlighted');
-            } else {
-                chip.classList.remove('highlighted');
-            }
-        });
+        // Set filter
+        currentTickerFilter = ticker;
+        if (tickerFilterSelect) tickerFilterSelect.value = ticker;
         highlightedTicker = ticker;
-        
-        // Show toast
-        showToast(`Highlighting all articles mentioning ${ticker}`, 'info');
+        showToast(`Filtering articles for ${ticker}`, 'info');
     }
+    
+    // Re-render articles with filter
+    renderArticles();
 }
 
 // ============ Event Listeners ============
