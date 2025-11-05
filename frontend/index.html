@@ -192,7 +192,54 @@
                 </div>
                 <div class="meta-info">
                     <span id="results-count">Loading...</span>
+                    <button id="info-btn" class="btn-icon" title="How scoring works" aria-label="Information">ℹ️</button>
                 </div>
+            </div>
+            
+            <!-- Info Modal -->
+            <div id="info-modal" class="modal" role="dialog" aria-labelledby="modal-title" aria-hidden="true">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 id="modal-title">📊 How It Works</h2>
+                        <button class="modal-close" aria-label="Close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <section class="info-section">
+                            <h3>🎯 Relevance Score</h3>
+                            <p>Each article gets a score based on:</p>
+                            <ul>
+                                <li><strong>Tickers:</strong> +2 points per matched ticker (AAPL, TSLA, etc.)</li>
+                                <li><strong>Keywords:</strong> +1 point per keyword hit (earnings, IPO, etc.)</li>
+                                <li><strong>Strong words:</strong> +1 bonus if breaking, exclusive, surge, crash, etc.</li>
+                            </ul>
+                            <p class="example">
+                                <strong>Example:</strong> Article mentions AAPL + MSFT (4 pts) + "earnings" 2 times (2 pts) + contains "breaking" (1 pt) = <strong>Score: 7</strong>
+                            </p>
+                        </section>
+                        
+                        <section class="info-section">
+                            <h3>😊 Sentiment Analysis</h3>
+                            <p>Shows the emotional tone of the article:</p>
+                            <ul>
+                                <li><strong class="sentiment-pos">😊 Positive (green):</strong> Score &gt; 0.1 - Bullish, optimistic news</li>
+                                <li><strong class="sentiment-neutral">😐 Neutral (gray):</strong> Score -0.1 to 0.1 - Factual reporting</li>
+                                <li><strong class="sentiment-neg">😟 Negative (red):</strong> Score &lt; -0.1 - Bearish, concerning news</li>
+                            </ul>
+                            <p class="note">Uses VADER sentiment analysis on title + summary. Range: -1 (very negative) to +1 (very positive).</p>
+                        </section>
+                        
+                        <section class="info-section">
+                            <h3>📈 Ticker Badges</h3>
+                            <p>Blue badges show which stocks/cryptocurrencies the article mentions. Click a ticker in an article to see it highlighted across all results.</p>
+                        </section>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Helpful Tip Banner -->
+            <div id="tip-banner" class="tip-banner">
+                <span>💡 <strong>Tip:</strong> Click "🔄 Refresh Now" to fetch articles and see ticker badges appear!</span>
+                <button onclick="closeTipBanner()" aria-label="Close tip">&times;</button>
             </div>
 
             <!-- Article Cards Container -->

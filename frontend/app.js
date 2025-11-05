@@ -404,6 +404,11 @@ function renderArticles() {
         const tickers = article.tickers ? article.tickers.split(',').filter(t => t) : [];
         const sentimentClass = getSentimentClass(article.sentiment);
         
+        // Debug logging
+        if (tickers.length > 0) {
+            console.log('Article with tickers:', article.title, 'Tickers:', tickers);
+        }
+        
         return `
             <article class="card">
                 <div class="meta">
@@ -419,15 +424,20 @@ function renderArticles() {
                 
                 ${article.summary ? `<p class="summary">${esc(article.summary)}</p>` : ''}
                 
-                <div class="chips">
-                    ${tickers.map(ticker => `<span class="chip">${esc(ticker)}</span>`).join('')}
-                    <span class="chip ${sentimentClass}">
-                        ${formatSentiment(article.sentiment)}
-                    </span>
-                </div>
+                ${tickers.length > 0 ? `
+                    <div class="chips">
+                        <strong style="font-size: 0.75rem; color: var(--muted); margin-right: 0.5rem;">📈 Mentioned:</strong>
+                        ${tickers.map(ticker => 
+                            `<span class="chip ticker" data-ticker="${esc(ticker)}" onclick="highlightTicker('${esc(ticker)}')" title="Click to highlight all ${esc(ticker)} articles">${esc(ticker)}</span>`
+                        ).join('')}
+                    </div>
+                ` : ''}
                 
                 <div class="foot">
-                    <span>Score: <strong class="score">${article.score}</strong></span>
+                    <span>Score: <strong class="score" title="Relevance: 2pts/ticker + 1pt/keyword + 1pt/strong word">${article.score}</strong></span>
+                    <span class="chip ${sentimentClass}" title="Sentiment: ${article.sentiment.toFixed(3)}">
+                        ${formatSentiment(article.sentiment)}
+                    </span>
                 </div>
             </article>
         `;
@@ -527,6 +537,68 @@ function setupAutoRefresh() {
     }, 30000);
 }
 
+// ============ Info Modal ============
+
+function setupModal() {
+    const modal = document.getElementById('info-modal');
+    const infoBtn = document.getElementById('info-btn');
+    const closeBtn = modal.querySelector('.modal-close');
+    
+    infoBtn.addEventListener('click', () => {
+        modal.classList.add('show');
+        modal.setAttribute('aria-hidden', 'false');
+    });
+    
+    closeBtn.addEventListener('click', () => {
+        modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+    });
+    
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+    });
+    
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('show')) {
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+    });
+}
+
+// ============ Ticker Highlighting ============
+
+let highlightedTicker = null;
+
+function highlightTicker(ticker) {
+    // Toggle highlight
+    if (highlightedTicker === ticker) {
+        // Remove highlight
+        document.querySelectorAll('.chip.ticker').forEach(chip => {
+            chip.classList.remove('highlighted');
+        });
+        highlightedTicker = null;
+    } else {
+        // Add highlight
+        document.querySelectorAll('.chip.ticker').forEach(chip => {
+            if (chip.dataset.ticker === ticker) {
+                chip.classList.add('highlighted');
+            } else {
+                chip.classList.remove('highlighted');
+            }
+        });
+        highlightedTicker = ticker;
+        
+        // Show toast
+        showToast(`Highlighting all articles mentioning ${ticker}`, 'info');
+    }
+}
+
 // ============ Event Listeners ============
 
 function setupEventListeners() {
@@ -539,6 +611,9 @@ function setupEventListeners() {
     // Buttons
     document.getElementById('refresh-btn').addEventListener('click', manualRefresh);
     document.getElementById('prune-btn').addEventListener('click', pruneArticles);
+    
+    // Modal
+    setupModal();
 }
 
 // ============ Initialization ============
@@ -551,6 +626,9 @@ async function init() {
     setupSearchAndFilter();
     setupInfiniteScroll();
     setupAutoRefresh();
+    
+    // Check tip banner
+    checkTipBanner();
     
     // Load initial data
     await Promise.all([
@@ -574,7 +652,27 @@ if (document.readyState === 'loading') {
     init();
 }
 
+// ============ Tip Banner ============
+
+function closeTipBanner() {
+    const banner = document.getElementById('tip-banner');
+    if (banner) {
+        banner.classList.add('hidden');
+        // Remember user closed it
+        localStorage.setItem('tipBannerClosed', 'true');
+    }
+}
+
+function checkTipBanner() {
+    const banner = document.getElementById('tip-banner');
+    if (banner && localStorage.getItem('tipBannerClosed') === 'true') {
+        banner.classList.add('hidden');
+    }
+}
+
 // Make functions available globally (for inline onclick handlers)
 window.deleteFeed = deleteFeed;
 window.deleteTicker = deleteTicker;
 window.deleteKeyword = deleteKeyword;
+window.highlightTicker = highlightTicker;
+window.closeTipBanner = closeTipBanner;

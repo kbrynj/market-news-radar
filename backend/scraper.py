@@ -22,6 +22,100 @@ from . import db
 sentiment_analyzer = SentimentIntensityAnalyzer()
 
 
+# Company name to ticker mapping
+# Maps common company names/variations to their ticker symbols
+COMPANY_TO_TICKER = {
+    # Tech Giants
+    'apple': 'AAPL',
+    'microsoft': 'MSFT',
+    'alphabet': 'GOOGL',
+    'google': 'GOOGL',
+    'amazon': 'AMZN',
+    'meta': 'META',
+    'facebook': 'META',
+    'tesla': 'TSLA',
+    'nvidia': 'NVDA',
+    'netflix': 'NFLX',
+    'adobe': 'ADBE',
+    'salesforce': 'CRM',
+    'oracle': 'ORCL',
+    'intel': 'INTC',
+    'amd': 'AMD',
+    'ibm': 'IBM',
+    'cisco': 'CSCO',
+    'qualcomm': 'QCOM',
+    
+    # Finance
+    'jpmorgan': 'JPM',
+    'jp morgan': 'JPM',
+    'bank of america': 'BAC',
+    'wells fargo': 'WFC',
+    'goldman sachs': 'GS',
+    'morgan stanley': 'MS',
+    'citigroup': 'C',
+    'visa': 'V',
+    'mastercard': 'MA',
+    'paypal': 'PYPL',
+    'square': 'SQ',
+    'american express': 'AXP',
+    
+    # Retail & Consumer
+    'walmart': 'WMT',
+    'target': 'TGT',
+    'costco': 'COST',
+    'home depot': 'HD',
+    'nike': 'NKE',
+    'starbucks': 'SBUX',
+    'mcdonalds': 'MCD',
+    "mcdonald's": 'MCD',
+    'coca cola': 'KO',
+    'coca-cola': 'KO',
+    'pepsi': 'PEP',
+    'procter & gamble': 'PG',
+    'disney': 'DIS',
+    
+    # Automotive
+    'general motors': 'GM',
+    'ford': 'F',
+    'gm': 'GM',
+    
+    # Pharma & Healthcare
+    'pfizer': 'PFE',
+    'moderna': 'MRNA',
+    'johnson & johnson': 'JNJ',
+    'abbvie': 'ABBV',
+    'merck': 'MRK',
+    'eli lilly': 'LLY',
+    'bristol myers': 'BMY',
+    'unitedhealth': 'UNH',
+    
+    # Energy
+    'exxon': 'XOM',
+    'chevron': 'CVX',
+    'conocophillips': 'COP',
+    'schlumberger': 'SLB',
+    
+    # Crypto (as company references)
+    'bitcoin': 'BTC',
+    'ethereum': 'ETH',
+    'coinbase': 'COIN',
+    'microstrategy': 'MSTR',
+    
+    # Aerospace & Defense
+    'boeing': 'BA',
+    'lockheed martin': 'LMT',
+    'raytheon': 'RTX',
+    
+    # Other Major Companies
+    'berkshire hathaway': 'BRK.B',
+    'at&t': 'T',
+    'verizon': 'VZ',
+    'comcast': 'CMCSA',
+    'lowes': 'LOW',
+    "lowe's": 'LOW',
+}
+
+
 def clean_html(text: str) -> str:
     """Remove HTML tags and clean text."""
     if not text:
@@ -77,6 +171,7 @@ def calculate_score(
 ) -> Tuple[int, List[str]]:
     """
     Calculate article score based on matched tickers, keywords, and strong words.
+    Also matches company names to tickers for better detection.
     
     Score formula:
     score = 2 * len(matched_tickers) + keyword_hits + (1 if strong_word_present else 0)
@@ -87,7 +182,9 @@ def calculate_score(
     text_upper = text.upper()
     
     # Find matched tickers (case-insensitive, word boundaries)
-    matched_tickers = []
+    matched_tickers = set()  # Use set to avoid duplicates
+    
+    # Method 1: Direct ticker symbol matching
     for ticker in tickers:
         # Check for ticker as whole word (with common delimiters)
         ticker_patterns = [
@@ -99,7 +196,15 @@ def calculate_score(
         ]
         if any(pattern.upper() in text_upper or pattern.upper() in f" {text_upper} " 
                for pattern in ticker_patterns):
-            matched_tickers.append(ticker)
+            matched_tickers.add(ticker)
+    
+    # Method 2: Company name matching
+    for company_name, ticker_symbol in COMPANY_TO_TICKER.items():
+        # Only check if this ticker is in our configured list
+        if ticker_symbol in tickers:
+            # Check if company name appears in text
+            if company_name in text_lower:
+                matched_tickers.add(ticker_symbol)
     
     # Count keyword hits (can match multiple times)
     keyword_hits = 0
@@ -117,7 +222,7 @@ def calculate_score(
     # Calculate score
     score = (2 * len(matched_tickers)) + keyword_hits + (1 if strong_word_present else 0)
     
-    return score, matched_tickers
+    return score, list(matched_tickers)
 
 
 def calculate_sentiment(text: str) -> float:
